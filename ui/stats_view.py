@@ -114,29 +114,29 @@ class StatsView(QWidget):
         return section
 
     def _build_charts_section(self) -> QWidget:
-        """Return three stacked matplotlib charts: beak over time, capacity, beak vs uses."""
+        """Return three stacked matplotlib charts: voltage/uses, resistance/uses, capacity."""
         section = _section_widget("CHARTS")
         layout = section.layout()
 
-        # Chart 1: Beak readings over time
-        self._fig_beak_time = Figure(figsize=(8, 2.2), facecolor=theme.BG)
-        self._canvas_beak_time = FigureCanvas(self._fig_beak_time)
-        self._canvas_beak_time.setStyleSheet(f"background: {theme.BG};")
-        self._canvas_beak_time.setMinimumHeight(180)
+        # Chart 1: Voltage over uses
+        self._fig_voltage_uses = Figure(figsize=(8, 2.2), facecolor=theme.BG)
+        self._canvas_voltage_uses = FigureCanvas(self._fig_voltage_uses)
+        self._canvas_voltage_uses.setStyleSheet(f"background: {theme.BG};")
+        self._canvas_voltage_uses.setMinimumHeight(180)
 
-        # Chart 2: Capacity over time
+        # Chart 2: Resistance over uses
+        self._fig_resistance_uses = Figure(figsize=(8, 2.2), facecolor=theme.BG)
+        self._canvas_resistance_uses = FigureCanvas(self._fig_resistance_uses)
+        self._canvas_resistance_uses.setStyleSheet(f"background: {theme.BG};")
+        self._canvas_resistance_uses.setMinimumHeight(180)
+
+        # Chart 3: Tracking capacity readings
         self._fig_capacity = Figure(figsize=(8, 2.0), facecolor=theme.BG)
         self._canvas_capacity = FigureCanvas(self._fig_capacity)
         self._canvas_capacity.setStyleSheet(f"background: {theme.BG};")
         self._canvas_capacity.setMinimumHeight(160)
 
-        # Chart 3: Beak readings vs. use number
-        self._fig_beak_uses = Figure(figsize=(8, 2.2), facecolor=theme.BG)
-        self._canvas_beak_uses = FigureCanvas(self._fig_beak_uses)
-        self._canvas_beak_uses.setStyleSheet(f"background: {theme.BG};")
-        self._canvas_beak_uses.setMinimumHeight(180)
-
-        for canvas in (self._canvas_beak_time, self._canvas_capacity, self._canvas_beak_uses):
+        for canvas in (self._canvas_voltage_uses, self._canvas_resistance_uses, self._canvas_capacity):
             sep = _thin_separator()
             layout.addWidget(canvas)
             layout.addWidget(sep)
@@ -233,9 +233,9 @@ class StatsView(QWidget):
 
         self._populate_header(battery)
         self._populate_properties(battery, sessions)
-        self._draw_beak_time_chart(sessions, readings)
+        self._draw_voltage_uses_chart(readings)
+        self._draw_resistance_uses_chart(readings)
         self._draw_capacity_chart(cap_tests)
-        self._draw_beak_uses_chart(readings)
         self._populate_history_table(sessions, reading_by_session)
 
         self._print_qr_btn.setEnabled(True)
@@ -322,45 +322,32 @@ class StatsView(QWidget):
     # Chart drawing
     # -------------------------------------------------------------------------
 
-    def _draw_beak_time_chart(self, sessions, readings) -> None:
-        """Chart: voltage, charge%, resistance vs. date (sorted by date)."""
-        self._fig_beak_time.clear()
-        ax = self._fig_beak_time.add_subplot(111)
-        _style_ax(ax, "Beak Readings Over Time")
+    def _draw_voltage_uses_chart(self, readings) -> None:
+        """Chart: voltage vs. use number."""
+        self._fig_voltage_uses.clear()
+        ax = self._fig_voltage_uses.add_subplot(111)
+        _style_ax(ax, "Voltage over Uses")
 
-        closed = sorted(
-            [s for s in sessions if s.scan_in_time is not None],
-            key=lambda s: s.scan_out_time,
-        )
-        reading_map = {r.session_id: r for r in readings}
-
-        if not closed:
+        if not readings:
             ax.text(0.5, 0.5, "No data", transform=ax.transAxes,
                     color=theme.TEXT_DIM, ha="center", va="center", fontsize=10)
         else:
-            dates      = [s.scan_out_time for s in closed]
-            voltages   = [reading_map[s.session_id].voltage       if s.session_id in reading_map else None for s in closed]
-            charges    = [reading_map[s.session_id].charge_pct    if s.session_id in reading_map else None for s in closed]
-            resistances= [reading_map[s.session_id].resistance_mohm if s.session_id in reading_map else None for s in closed]
-
-            if any(v is not None for v in voltages):
-                ax.plot(dates, voltages,    color=theme.ORANGE, label="Voltage (V)",   linewidth=1.5, marker="o", markersize=3)
-            if any(v is not None for v in charges):
-                ax.plot(dates, charges,     color=theme.GREEN,  label="Charge (%)",    linewidth=1.5, marker="s", markersize=3)
-            if any(v is not None for v in resistances):
-                ax.plot(dates, resistances, color=theme.BLUE,   label="Resistance (mΩ)", linewidth=1.5, marker="^", markersize=3)
-
+            use_nums = list(range(1, len(readings) + 1))
+            voltages = [r.voltage for r in readings]
+            ax.plot(use_nums, voltages, color=theme.ORANGE, label="Voltage (V)",
+                    linewidth=1.5, marker="o", markersize=3)
+            ax.set_xlabel("Use #", color=theme.TEXT_DIM, fontsize=8)
+            ax.set_ylabel("V", color=theme.TEXT_DIM, fontsize=8)
             ax.legend(fontsize=8, labelcolor=theme.TEXT_DIM,
                       facecolor=theme.BG2, edgecolor=theme.BORDER)
-            self._fig_beak_time.autofmt_xdate(rotation=30, ha="right")
 
-        self._canvas_beak_time.draw()
+        self._canvas_voltage_uses.draw()
 
     def _draw_capacity_chart(self, cap_tests: list[CapacityTestDTO]) -> None:
-        """Chart: capacity (Ah) over time."""
+        """Chart: tracking capacity readings over time."""
         self._fig_capacity.clear()
         ax = self._fig_capacity.add_subplot(111)
-        _style_ax(ax, "Capacity Over Time (Ah)")
+        _style_ax(ax, "Tracking Capacity Readings (Ah)")
 
         if not cap_tests:
             ax.text(0.5, 0.5, "No capacity tests recorded",
@@ -377,29 +364,26 @@ class StatsView(QWidget):
 
         self._canvas_capacity.draw()
 
-    def _draw_beak_uses_chart(self, readings) -> None:
-        """Chart: beak readings plotted against use number (1, 2, 3, ...)."""
-        self._fig_beak_uses.clear()
-        ax = self._fig_beak_uses.add_subplot(111)
-        _style_ax(ax, "Beak Readings vs. Use Number")
+    def _draw_resistance_uses_chart(self, readings) -> None:
+        """Chart: resistance vs. use number."""
+        self._fig_resistance_uses.clear()
+        ax = self._fig_resistance_uses.add_subplot(111)
+        _style_ax(ax, "Resistance over Uses")
 
         if not readings:
             ax.text(0.5, 0.5, "No data", transform=ax.transAxes,
                     color=theme.TEXT_DIM, ha="center", va="center", fontsize=10)
         else:
             use_nums    = list(range(1, len(readings) + 1))
-            voltages    = [r.voltage        for r in readings]
-            charges     = [r.charge_pct     for r in readings]
             resistances = [r.resistance_mohm for r in readings]
-
-            ax.plot(use_nums, voltages,    color=theme.ORANGE, label="Voltage (V)",     linewidth=1.5, marker="o", markersize=3)
-            ax.plot(use_nums, charges,     color=theme.GREEN,  label="Charge (%)",      linewidth=1.5, marker="s", markersize=3)
-            ax.plot(use_nums, resistances, color=theme.BLUE,   label="Resistance (mΩ)", linewidth=1.5, marker="^", markersize=3)
+            ax.plot(use_nums, resistances, color=theme.BLUE, label="Resistance (mΩ)",
+                    linewidth=1.5, marker="^", markersize=3)
             ax.set_xlabel("Use #", color=theme.TEXT_DIM, fontsize=8)
+            ax.set_ylabel("mΩ", color=theme.TEXT_DIM, fontsize=8)
             ax.legend(fontsize=8, labelcolor=theme.TEXT_DIM,
                       facecolor=theme.BG2, edgecolor=theme.BORDER)
 
-        self._canvas_beak_uses.draw()
+        self._canvas_resistance_uses.draw()
 
     # -------------------------------------------------------------------------
     # Button handlers

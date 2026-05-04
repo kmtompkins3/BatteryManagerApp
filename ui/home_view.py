@@ -336,12 +336,17 @@ class HomeView(QWidget):
             status_value = "OnField" if open_session else "Available"
 
             # Alert indicator
-            has_alert = any([
-                flags.not_scanned_in,
-                flags.not_used,
-                flags.not_tested,
-                flags.usage_imbalance,
-            ])
+            alert_messages = []
+            if flags.not_scanned_in:
+                alert_messages.append("Not scanned in recently")
+            if flags.not_used:
+                alert_messages.append("Not used recently")
+            if flags.not_tested:
+                alert_messages.append("Capacity test overdue")
+            if flags.usage_imbalance:
+                alert_messages.append("Usage imbalance across fleet")
+            has_alert = bool(alert_messages)
+            alert_tooltip = "\n".join(alert_messages) if alert_messages else ""
 
             # Populate plain-text cells
             self._table.setItem(row_index, COL_ID,         _read_only_item(str(battery_id)))
@@ -349,7 +354,10 @@ class HomeView(QWidget):
             self._table.setItem(row_index, COL_RESISTANCE, _read_only_item(latest_resistance))
             self._table.setItem(row_index, COL_USES,       _read_only_item(str(total_uses)))
             self._table.setItem(row_index, COL_LAST_USED,  _read_only_item(last_used_text))
-            self._table.setItem(row_index, COL_ALERTS,     _read_only_item("⚠" if has_alert else ""))
+            alert_item = _read_only_item("⚠" if has_alert else "")
+            if alert_tooltip:
+                alert_item.setToolTip(alert_tooltip)
+            self._table.setItem(row_index, COL_ALERTS, alert_item)
 
             # Status dot widget
             status_widget = _make_status_dot_widget(status_value)
