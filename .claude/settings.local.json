@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python main.py)",
+      "Bash(python -c ' *)",
+      "Bash(del \"C:\\\\Users\\\\Desktop\\\\Desktop\\\\CodeProjects\\\\BatteryManager\\\\BatteryManager\\\\BatteryManagerApp\\\\battery_tracker.db\")",
+      "Bash(unzip -l BatteryManager.zip)",
+      "Bash(powershell -Command \"Expand-Archive -Path 'BatteryManager.zip' -DestinationPath './extracted' -Force; Get-ChildItem -Recurse './extracted' | Select-Object FullName\")",
+      "Bash(unzip -o BatteryManager.zip -d extracted/)",
+      "Read(//c/Users/Desktop/Desktop/CodeProjects/BatteryManager/**)",
+      "Bash(dir /s /b PRD.md Tasks.md)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Desktop\\\\Desktop\\\\CodeProjects\\\\BatteryManager\" -Recurse -Include \"PRD.md\",\"Tasks.md\",\"*.jsx\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object FullName)",
+      "Bash(pip list *)",
+      "Bash(pip install *)",
+      "Bash(python -c \"from ui.main_window import run_app; print\\('Import OK'\\)\")",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
