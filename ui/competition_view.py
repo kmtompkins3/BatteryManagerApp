@@ -50,10 +50,11 @@ class CompetitionView(QWidget):
     status colors, action buttons, and 1-second timer ticks.
     """
 
-    end_competition_requested = pyqtSignal()
-    set_charging_requested    = pyqtSignal(int)   # battery_id
-    cooling_complete          = pyqtSignal(int)   # battery_id
-    battery_missing           = pyqtSignal(int)   # battery_id
+    end_competition_requested        = pyqtSignal()
+    set_charging_requested           = pyqtSignal(int)   # battery_id
+    cooling_complete                 = pyqtSignal(int)   # battery_id
+    battery_missing                  = pyqtSignal(int)   # battery_id
+    add_battery_to_queue_requested   = pyqtSignal()
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -126,6 +127,11 @@ class CompetitionView(QWidget):
         self._counts_label.setFont(theme.get_font(size=10))
         self._counts_label.setStyleSheet(f"color: {theme.TEXT_DIM};")
 
+        # Add battery to queue button
+        add_btn = theme.make_primary_button("+ ADD BATTERY")
+        add_btn.setFixedHeight(34)
+        add_btn.clicked.connect(self.add_battery_to_queue_requested.emit)
+
         # End competition button
         end_btn = theme.make_danger_button("END COMPETITION")
         end_btn.setFixedHeight(34)
@@ -135,6 +141,7 @@ class CompetitionView(QWidget):
         layout.addWidget(queue_title)
         layout.addWidget(self._counts_label)
         layout.addStretch()
+        layout.addWidget(add_btn)
         layout.addWidget(end_btn)
 
         return header

@@ -151,6 +151,22 @@ def pin_to_bottom_missing(battery_id: int) -> None:
         )
 
 
+def add_to_queue(battery_id: int) -> None:
+    """Adds a single battery at the end of the queue with status Available."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT MAX(queue_position) as max_pos FROM CompetitionQueue"
+        ).fetchone()
+        next_pos = (row["max_pos"] + 1) if row["max_pos"] is not None else 0
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO CompetitionQueue (queue_position, battery_id, status)
+            VALUES (?, ?, 'Available')
+            """,
+            (next_pos, battery_id),
+        )
+
+
 def clear_queue() -> None:
     with get_db() as conn:
         conn.execute("DELETE FROM CompetitionQueue")

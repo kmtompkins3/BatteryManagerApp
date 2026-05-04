@@ -97,6 +97,21 @@ def confirm_cooling_complete(battery_id: int) -> None:
     _queue_dal.clear_cooling_start_time(battery_id)
 
 
+def add_battery_to_competition(battery_id: int) -> None:
+    """Adds a battery to the end of the competition queue if not already present."""
+    existing = _queue_dal.get_queue_row(battery_id)
+    if existing is not None:
+        return
+    _queue_dal.add_to_queue(battery_id)
+
+
+def get_batteries_not_in_queue() -> list:
+    """Returns active batteries that are not currently in the competition queue."""
+    all_active = _bat_dal.list_active_batteries()
+    queued_ids = {row.battery_id for row in _queue_dal.get_queue()}
+    return [b for b in all_active if b.battery_id not in queued_ids]
+
+
 def mark_missing(battery_id: int) -> None:
     """
     Sets status = Missing, records missing_since timestamp, and pins to bottom of queue.

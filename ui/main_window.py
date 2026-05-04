@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
     def _build_sidebar(self) -> QWidget:
         """Return the 240px fixed-width left sidebar."""
         sidebar = QWidget()
-        sidebar.setFixedWidth(240)
+        sidebar.setFixedWidth(265)
         sidebar.setStyleSheet(
             f"background-color: {theme.BG}; "
             f"border-right: 1px solid {theme.BORDER};"
@@ -387,6 +387,7 @@ class MainWindow(QMainWindow):
         self._comp_view.set_charging_requested.connect(self._set_battery_charging)
         self._comp_view.cooling_complete.connect(self._on_cooling_complete)
         self._comp_view.battery_missing.connect(self._on_battery_missing)
+        self._comp_view.add_battery_to_queue_requested.connect(self._on_add_battery_to_queue)
 
     # -----------------------------------------------------------------------
     # Navigation
@@ -588,17 +589,15 @@ class MainWindow(QMainWindow):
     # -----------------------------------------------------------------------
 
     def _show_add_battery_dialog(self) -> None:
-        """Open PIN check, then the Add Battery dialog if PIN is accepted."""
-        from ui.dialogs import AddBatteryDialog, PinDialog
-        pin_dlg = PinDialog(parent=self)
-        if pin_dlg.exec():
-            dlg = AddBatteryDialog(self)
-            if dlg.exec():
-                from app.services.battery_service import add_battery
-                from datetime import date
-                pd = date.fromisoformat(dlg.purchase_date) if dlg.purchase_date else None
-                add_battery(dlg.brand, dlg.batch_number, dlg.broken_in, pd)
-                self._home_view.refresh()
+        """Open the Add Battery dialog directly without requiring a PIN."""
+        from ui.dialogs import AddBatteryDialog
+        dlg = AddBatteryDialog(self)
+        if dlg.exec():
+            from app.services.battery_service import add_battery
+            from datetime import date
+            pd = date.fromisoformat(dlg.purchase_date) if dlg.purchase_date else None
+            add_battery(dlg.brand, dlg.batch_number, dlg.broken_in, pd)
+            self._home_view.refresh()
 
     def _on_edit_battery_requested(self, battery_id: int) -> None:
         """PIN-gated handler for editing a battery's brand/batch/purchase date."""
@@ -637,6 +636,16 @@ class MainWindow(QMainWindow):
     # -----------------------------------------------------------------------
     # Competition view signal handlers
     # -----------------------------------------------------------------------
+
+    def _on_add_battery_to_queue(self) -> None:
+        """Show a picker for batteries not yet in the queue and add the selected one."""
+        from app.services.competition_service import get_batteries_not_in_queue, add_battery_to_competition
+        from ui.dialogs import AddToQueueDialog
+        available = get_batteries_not_in_queue()
+        dlg = AddToQueueDialog(available, self)
+        if dlg.exec() and dlg.selected_battery_id is not None:
+            add_battery_to_competition(dlg.selected_battery_id)
+            self._comp_view.refresh()
 
     def _confirm_end_competition(self) -> None:
         """Ask for confirmation and a PIN before ending the competition."""

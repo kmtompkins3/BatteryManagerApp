@@ -209,7 +209,7 @@ class BeakReadingsDialog(QDialog):
 class AddBatteryDialog(QDialog):
     """Dialog for adding a new battery to the system."""
 
-    BRANDS = ["MK Battery", "EnerSys", "Power-Sonic"]
+    BRANDS = ["MK Battery", "EnerSys", "Power-Sonic", "Duracell"]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -731,4 +731,59 @@ class AlreadyOnFieldDialog(QDialog):
     def _on_reset_start(self):
         """Override: close old session and start a new one with fresh beak readings."""
         self.choice = "reset_start"
+        self.accept()
+
+
+# ---------------------------------------------------------------------------
+# AddToQueueDialog
+# ---------------------------------------------------------------------------
+
+class AddToQueueDialog(QDialog):
+    """Lets the operator pick a battery to add to the competition queue."""
+
+    def __init__(self, available_batteries: list, parent=None):
+        super().__init__(parent)
+        self.selected_battery_id: int | None = None
+
+        self.setWindowTitle("Add Battery to Queue")
+        self.setMinimumWidth(380)
+        self.setStyleSheet(f"background: {theme.BG2};")
+
+        content = _dialog_header(self, "ADD BATTERY TO QUEUE", accent=theme.PURPLE)
+
+        if not available_batteries:
+            msg = QLabel("All active batteries are already in the queue.")
+            msg.setFont(theme.get_font(size=10))
+            msg.setStyleSheet(f"color: {theme.TEXT_DIM};")
+            msg.setWordWrap(True)
+            content.addWidget(msg)
+            ok_btn = theme.make_ghost_button("OK")
+            ok_btn.clicked.connect(self.reject)
+            row = QHBoxLayout()
+            row.addStretch()
+            row.addWidget(ok_btn)
+            content.addLayout(row)
+            return
+
+        content.addWidget(_make_field_label("Select Battery"))
+        self._combo = QComboBox()
+        self._combo.setFont(theme.get_font(size=11))
+        for b in available_batteries:
+            label = f"#{b.battery_id}  —  {b.brand}  ·  Batch {b.batch_number}"
+            self._combo.addItem(label, userData=b.battery_id)
+        content.addWidget(self._combo)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        cancel_btn = theme.make_ghost_button("Cancel")
+        cancel_btn.clicked.connect(self.reject)
+        btn_row.addWidget(cancel_btn)
+
+        add_btn = theme.make_primary_button("ADD TO QUEUE →", color=theme.PURPLE)
+        add_btn.clicked.connect(self._on_add)
+        btn_row.addWidget(add_btn)
+        content.addLayout(btn_row)
+
+    def _on_add(self):
+        self.selected_battery_id = self._combo.currentData()
         self.accept()
