@@ -162,9 +162,11 @@ class CompetitionView(QWidget):
         header.setSectionResizeMode(COL_POS,    QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_ID,     QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_BRAND,  QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(COL_STATUS, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_TIMER,  QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_ACTION, QHeaderView.ResizeMode.ResizeToContents)
+        # STATUS COLUMN WIDTH — change the value below to resize the Status column
+        header.resizeSection(COL_STATUS, 140)
 
         return self._table
 

@@ -51,7 +51,7 @@ class _ChartPanel(QWidget):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setFixedHeight(160)
+        self.setFixedHeight(200)  # CHART PANEL HEIGHT — change this value to resize the top chart area
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         # Info label: shows battery ID, brand, batch, uses
@@ -219,12 +219,14 @@ class HomeView(QWidget):
         # Column widths
         header = self._table.horizontalHeader()
         header.setSectionResizeMode(COL_ID,         QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(COL_STATUS,     QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(COL_STATUS,     QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_VOLTAGE,    QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_RESISTANCE, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_USES,       QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_LAST_USED,  QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(COL_ALERTS,     QHeaderView.ResizeMode.ResizeToContents)
+        # STATUS COLUMN WIDTH — change the value below to resize the Status column
+        header.resizeSection(COL_STATUS, 140)
 
         self._table.cellClicked.connect(self._on_row_clicked)
         self._table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
