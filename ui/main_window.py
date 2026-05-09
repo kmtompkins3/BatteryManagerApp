@@ -102,6 +102,10 @@ class MainWindow(QMainWindow):
         self._setup_scanner()
         self._connect_signals()
         self._home_view.refresh()   # populate the table on first load
+        if AppState().is_competition:
+            self._update_mode_badge()
+            self._comp_view.refresh()
+            self._comp_view.start_ticking()
 
     # -----------------------------------------------------------------------
     # UI construction
@@ -440,6 +444,7 @@ class MainWindow(QMainWindow):
         If already in Competition mode, just switch to the competition view.
         """
         if AppState().is_competition:
+            self._comp_view.refresh()
             self.show_competition()
             return
 
