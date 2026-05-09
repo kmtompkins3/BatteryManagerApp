@@ -86,13 +86,26 @@ def assert_front_of_queue(battery_id: int) -> None:
         )
 
 
-def confirm_cooling_complete(battery_id: int) -> None:
+def set_battery_charging(battery_id: int) -> None:
     """
-    Called when the user presses 'Set to Charging' on a Cooling battery.
-    Sets status = Charging and clears the cooling_start_time.
+    Sets the battery's queue status to Charging from any prior status
+    (Available, Cooling, or ReadyToCharge) and clears any cooling timer.
     """
     _queue_dal.update_status(battery_id, BatteryStatus.CHARGING.value)
     _queue_dal.clear_cooling_start_time(battery_id)
+
+
+def confirm_cooling_complete(battery_id: int) -> None:
+    """Alias kept for backwards compatibility — delegates to set_battery_charging."""
+    set_battery_charging(battery_id)
+
+
+def set_battery_available(battery_id: int) -> None:
+    """
+    Marks a Charging battery as Available, signalling that charging is
+    complete and the battery is ready to be scanned out.
+    """
+    _queue_dal.update_status(battery_id, BatteryStatus.AVAILABLE.value)
 
 
 def add_battery_to_competition(battery_id: int) -> None:
