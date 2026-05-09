@@ -51,7 +51,6 @@ class CompetitionView(QWidget):
 
     end_competition_requested        = pyqtSignal()
     set_charging_requested           = pyqtSignal(int)   # battery_id — Available/Cooling/ReadyToCharge → Charging
-    set_available_requested          = pyqtSignal(int)   # battery_id — Charging → Available
     cooling_complete                 = pyqtSignal(int)   # battery_id
     battery_missing                  = pyqtSignal(int)   # battery_id
     add_battery_to_queue_requested   = pyqtSignal()
@@ -167,7 +166,7 @@ class CompetitionView(QWidget):
         header.setSectionResizeMode(COL_TIMER,  QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_ACTION, QHeaderView.ResizeMode.Stretch)
         # STATUS COLUMN WIDTH — change the value below to resize the Status column
-        header.resizeSection(COL_STATUS, 140)
+        header.resizeSection(COL_STATUS, 160)
 
         return self._table
 
@@ -334,15 +333,12 @@ class CompetitionView(QWidget):
             # Action buttons by status:
             #   Available        → SET TO CHARGING  (operator puts it on the charger)
             #   Cooling / Ready  → SET TO CHARGING  (cooling done, move to charger)
-            #   Charging         → MARK AVAILABLE   (charging done, ready to go out)
+            #   Charging         → no action (batteries stay on charger until field deployment)
             if status in (BatteryStatus.AVAILABLE.value,
                           BatteryStatus.COOLING.value,
                           "ReadyToCharge"):
                 charge_btn = _make_charge_button(battery_id, self.set_charging_requested.emit)
                 self._table.setCellWidget(row_index, COL_ACTION, charge_btn)
-            elif status == BatteryStatus.CHARGING.value:
-                avail_btn = _make_available_button(battery_id, self.set_available_requested.emit)
-                self._table.setCellWidget(row_index, COL_ACTION, avail_btn)
 
         self._table.resizeRowsToContents()
 
@@ -434,26 +430,6 @@ def _make_charge_button(battery_id: int, emit_fn) -> QPushButton:
         }}
         QPushButton:hover {{
             background: rgba(70,0,170,0.15);
-        }}
-    """)
-    btn.clicked.connect(lambda: emit_fn(battery_id))
-    return btn
-
-
-def _make_available_button(battery_id: int, emit_fn) -> QPushButton:
-    """Return a small 'MARK AVAILABLE' button wired to emit_fn(battery_id)."""
-    btn = QPushButton("MARK AVAILABLE")
-    btn.setFont(theme.get_font(bold=True, size=9))
-    btn.setFixedHeight(28)
-    btn.setStyleSheet(f"""
-        QPushButton {{
-            background: transparent;
-            color: {theme.GREEN};
-            border: 1px solid {theme.GREEN};
-            padding: 4px 10px;
-        }}
-        QPushButton:hover {{
-            background: rgba(34,197,94,0.15);
         }}
     """)
     btn.clicked.connect(lambda: emit_fn(battery_id))

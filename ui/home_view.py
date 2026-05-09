@@ -226,7 +226,7 @@ class HomeView(QWidget):
         header.setSectionResizeMode(COL_LAST_USED,  QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(COL_ALERTS,     QHeaderView.ResizeMode.ResizeToContents)
         # STATUS COLUMN WIDTH — change the value below to resize the Status column
-        header.resizeSection(COL_STATUS, 140)
+        header.resizeSection(COL_STATUS, 180)
 
         self._table.cellClicked.connect(self._on_row_clicked)
         self._table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)

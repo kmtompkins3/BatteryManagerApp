@@ -385,7 +385,6 @@ class MainWindow(QMainWindow):
 
         self._comp_view.end_competition_requested.connect(self._confirm_end_competition)
         self._comp_view.set_charging_requested.connect(self._set_battery_charging)
-        self._comp_view.set_available_requested.connect(self._set_battery_available)
         self._comp_view.cooling_complete.connect(self._on_cooling_complete)
         self._comp_view.battery_missing.connect(self._on_battery_missing)
         self._comp_view.add_battery_to_queue_requested.connect(self._on_add_battery_to_queue)
@@ -675,12 +674,6 @@ class MainWindow(QMainWindow):
         """Move a battery to Charging status (from Available, Cooling, or ReadyToCharge)."""
         from app.services.competition_service import set_battery_charging
         set_battery_charging(battery_id)
-        self._comp_view.refresh()
-
-    def _set_battery_available(self, battery_id: int) -> None:
-        """Mark a Charging battery as Available — charging is done, ready to go out."""
-        from app.services.competition_service import set_battery_available
-        set_battery_available(battery_id)
         self._comp_view.refresh()
 
     def _on_cooling_complete(self, battery_id: int) -> None:
