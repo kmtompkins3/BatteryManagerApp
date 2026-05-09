@@ -31,11 +31,10 @@ import db.settings_dal as settings_dal
 # Column index constants
 COL_POS    = 0
 COL_ID     = 1
-COL_BRAND  = 2
-COL_STATUS = 3
-COL_TIMER  = 4
-COL_ACTION = 5
-COLUMN_HEADERS = ["Pos", "ID", "Brand", "Status", "Timer", "Action"]
+COL_STATUS = 2
+COL_TIMER  = 3
+COL_ACTION = 4
+COLUMN_HEADERS = ["Pos", "ID", "Status", "Timer", "Action"]
 
 # Status values that show the "SET TO CHARGING" button
 READY_TO_CHARGE_STATUSES = {BatteryStatus.COOLING.value}
@@ -51,7 +50,8 @@ class CompetitionView(QWidget):
     """
 
     end_competition_requested        = pyqtSignal()
-    set_charging_requested           = pyqtSignal(int)   # battery_id
+    set_charging_requested           = pyqtSignal(int)   # battery_id — Available/Cooling/ReadyToCharge → Charging
+    set_available_requested          = pyqtSignal(int)   # battery_id — Charging → Available
     cooling_complete                 = pyqtSignal(int)   # battery_id
     battery_missing                  = pyqtSignal(int)   # battery_id
     add_battery_to_queue_requested   = pyqtSignal()
@@ -71,7 +71,7 @@ class CompetitionView(QWidget):
         # Tracks batteries already emitted as cooling_complete this refresh cycle
         self._emitted_cooling_done: set[int] = set()
 
-        # Last loaded queue entries (used for brand/pos lookup without a fresh DB hit)
+        # Last loaded queue entries (used for pos lookup without a fresh DB hit)
         self._queue: list[QueueEntryDTO] = []
 
         self._build_ui()
@@ -159,12 +159,13 @@ class CompetitionView(QWidget):
         self._table.setSortingEnabled(False)
 
         header = self._table.horizontalHeader()
-        header.setSectionResizeMode(COL_POS,    QHeaderView.ResizeMode.ResizeToContents)
+        # POS COLUMN WIDTH — change the value below to resize the Pos column
+        header.setSectionResizeMode(COL_POS,    QHeaderView.ResizeMode.Fixed)
+        header.resizeSection(COL_POS, 60)
         header.setSectionResizeMode(COL_ID,     QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(COL_BRAND,  QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(COL_STATUS, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_TIMER,  QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(COL_ACTION, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(COL_ACTION, QHeaderView.ResizeMode.Stretch)
         # STATUS COLUMN WIDTH — change the value below to resize the Status column
         header.resizeSection(COL_STATUS, 140)
 
@@ -320,9 +321,7 @@ class CompetitionView(QWidget):
             self._table.setCellWidget(row_index, COL_POS, pos_label)
 
             # Plain text cells
-            brand = self._brand_for(battery_id)
-            self._table.setItem(row_index, COL_ID,    _read_only_item(str(battery_id), row_bg))
-            self._table.setItem(row_index, COL_BRAND, _read_only_item(brand, row_bg))
+            self._table.setItem(row_index, COL_ID, _read_only_item(str(battery_id), row_bg))
 
             # Timer
             timer_text = self._format_timer(battery_id, status)
@@ -332,10 +331,18 @@ class CompetitionView(QWidget):
             status_widget = _make_status_dot_widget(entry.status)
             self._table.setCellWidget(row_index, COL_STATUS, status_widget)
 
-            # Action button: show for Cooling / ReadyToCharge batteries
-            if status in (BatteryStatus.COOLING.value, "ReadyToCharge"):
+            # Action buttons by status:
+            #   Available        → SET TO CHARGING  (operator puts it on the charger)
+            #   Cooling / Ready  → SET TO CHARGING  (cooling done, move to charger)
+            #   Charging         → MARK AVAILABLE   (charging done, ready to go out)
+            if status in (BatteryStatus.AVAILABLE.value,
+                          BatteryStatus.COOLING.value,
+                          "ReadyToCharge"):
                 charge_btn = _make_charge_button(battery_id, self.set_charging_requested.emit)
                 self._table.setCellWidget(row_index, COL_ACTION, charge_btn)
+            elif status == BatteryStatus.CHARGING.value:
+                avail_btn = _make_available_button(battery_id, self.set_available_requested.emit)
+                self._table.setCellWidget(row_index, COL_ACTION, avail_btn)
 
         self._table.resizeRowsToContents()
 
@@ -355,12 +362,6 @@ class CompetitionView(QWidget):
         if status == "ReadyToCharge":
             return "0m 0s"
         return ""
-
-    def _brand_for(self, battery_id: int) -> str:
-        """Return the brand string for a battery from the cached queue list."""
-        # The queue DTO doesn't carry brand; we return a placeholder.
-        # The main window can enrich this by connecting to battery_service if needed.
-        return f"#{battery_id}"
 
     def _update_counts_label(self) -> None:
         """Recompute active/missing counts and update the header label."""
@@ -433,6 +434,26 @@ def _make_charge_button(battery_id: int, emit_fn) -> QPushButton:
         }}
         QPushButton:hover {{
             background: rgba(70,0,170,0.15);
+        }}
+    """)
+    btn.clicked.connect(lambda: emit_fn(battery_id))
+    return btn
+
+
+def _make_available_button(battery_id: int, emit_fn) -> QPushButton:
+    """Return a small 'MARK AVAILABLE' button wired to emit_fn(battery_id)."""
+    btn = QPushButton("MARK AVAILABLE")
+    btn.setFont(theme.get_font(bold=True, size=9))
+    btn.setFixedHeight(28)
+    btn.setStyleSheet(f"""
+        QPushButton {{
+            background: transparent;
+            color: {theme.GREEN};
+            border: 1px solid {theme.GREEN};
+            padding: 4px 10px;
+        }}
+        QPushButton:hover {{
+            background: rgba(34,197,94,0.15);
         }}
     """)
     btn.clicked.connect(lambda: emit_fn(battery_id))
