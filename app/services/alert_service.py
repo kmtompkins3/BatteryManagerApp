@@ -56,12 +56,11 @@ def compute_alerts_practice(battery_id: int) -> AlertFlags:
             cutoff = _hours_ago(not_scanned_threshold)
             flags.not_scanned_in = last_scan_out < cutoff
 
-    # Not used: last closed session more than threshold months ago (or never)
+    # Not used: only flag if the battery HAS been used before but not recently.
+    # Batteries that have never been used are not flagged here.
     sessions = _session_dal.get_sessions_for_battery(battery_id)
     closed = [s for s in sessions if s.scan_in_time is not None]
-    if not closed:
-        flags.not_used = True
-    else:
+    if closed:
         last_use = max(s.scan_in_time for s in closed)
         flags.not_used = last_use < _months_ago(not_used_threshold)
 

@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QComboBox, QCheckBox, QFrame, QWidget, QApplication,
+    QListWidget, QAbstractItemView,
 )
 from PyQt6.QtCore import Qt
 from datetime import date
@@ -739,14 +740,14 @@ class AlreadyOnFieldDialog(QDialog):
 # ---------------------------------------------------------------------------
 
 class AddToQueueDialog(QDialog):
-    """Lets the operator pick a battery to add to the competition queue."""
+    """Lets the operator pick one or more batteries to add to the competition queue."""
 
     def __init__(self, available_batteries: list, parent=None):
         super().__init__(parent)
-        self.selected_battery_id: int | None = None
+        self.selected_battery_ids: list[int] = []
 
         self.setWindowTitle("Add Battery to Queue")
-        self.setMinimumWidth(380)
+        self.setMinimumWidth(400)
         self.setStyleSheet(f"background: {theme.BG2};")
 
         content = _dialog_header(self, "ADD BATTERY TO QUEUE", accent=theme.PURPLE)
@@ -765,13 +766,21 @@ class AddToQueueDialog(QDialog):
             content.addLayout(row)
             return
 
-        content.addWidget(_make_field_label("Select Battery"))
-        self._combo = QComboBox()
-        self._combo.setFont(theme.get_font(size=11))
+        hint = QLabel("Hold Ctrl (or Cmd) to select multiple batteries.")
+        hint.setFont(theme.get_font(size=9))
+        hint.setStyleSheet(f"color: {theme.TEXT_DIM};")
+        content.addWidget(hint)
+
+        content.addWidget(_make_field_label("Select Batteries"))
+        self._list = QListWidget()
+        self._list.setFont(theme.get_font(size=11))
+        self._list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self._list.setMinimumHeight(140)
         for b in available_batteries:
             label = f"#{b.battery_id}  —  {b.brand}  ·  Batch {b.batch_number}"
-            self._combo.addItem(label, userData=b.battery_id)
-        content.addWidget(self._combo)
+            item = self._list.addItem(label)
+            self._list.item(self._list.count() - 1).setData(Qt.ItemDataRole.UserRole, b.battery_id)
+        content.addWidget(self._list)
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
@@ -785,5 +794,9 @@ class AddToQueueDialog(QDialog):
         content.addLayout(btn_row)
 
     def _on_add(self):
-        self.selected_battery_id = self._combo.currentData()
-        self.accept()
+        self.selected_battery_ids = [
+            item.data(Qt.ItemDataRole.UserRole)
+            for item in self._list.selectedItems()
+        ]
+        if self.selected_battery_ids:
+            self.accept()

@@ -129,9 +129,9 @@ class MainWindow(QMainWindow):
         root_layout.addWidget(self._build_status_bar())
 
     def _build_sidebar(self) -> QWidget:
-        """Return the 240px fixed-width left sidebar."""
+        """Return the fixed-width left sidebar."""
         sidebar = QWidget()
-        sidebar.setFixedWidth(265)
+        sidebar.setFixedWidth(290)  # SIDEBAR WIDTH — change this value to resize the sidebar
         sidebar.setStyleSheet(
             f"background-color: {theme.BG}; "
             f"border-right: 1px solid {theme.BORDER};"
@@ -458,6 +458,7 @@ class MainWindow(QMainWindow):
         """Update the sidebar badge, switch view, and start the competition timer."""
         self._update_mode_badge()
         self.show_competition()
+        self._comp_view.refresh()
         self._comp_view.start_ticking()
 
     def _handle_competition_ended(self) -> None:
@@ -630,6 +631,10 @@ class MainWindow(QMainWindow):
             return
         from app.services.battery_service import retire_battery
         retire_battery(battery_id)
+        if AppState().is_competition:
+            from app.services.competition_service import remove_from_competition_queue
+            remove_from_competition_queue(battery_id)
+            self._comp_view.refresh()
         self._home_view.refresh()
         self._show_scan_status(f"Battery #{battery_id} retired.", ok=True)
 
@@ -638,13 +643,14 @@ class MainWindow(QMainWindow):
     # -----------------------------------------------------------------------
 
     def _on_add_battery_to_queue(self) -> None:
-        """Show a picker for batteries not yet in the queue and add the selected one."""
+        """Show a picker for batteries not yet in the queue and add the selected ones."""
         from app.services.competition_service import get_batteries_not_in_queue, add_battery_to_competition
         from ui.dialogs import AddToQueueDialog
         available = get_batteries_not_in_queue()
         dlg = AddToQueueDialog(available, self)
-        if dlg.exec() and dlg.selected_battery_id is not None:
-            add_battery_to_competition(dlg.selected_battery_id)
+        if dlg.exec() and dlg.selected_battery_ids:
+            for battery_id in dlg.selected_battery_ids:
+                add_battery_to_competition(battery_id)
             self._comp_view.refresh()
 
     def _confirm_end_competition(self) -> None:

@@ -39,12 +39,10 @@ def _to_dto(row: _queue_dal.QueueRow) -> QueueEntryDTO:
 
 def start_competition() -> None:
     """
-    Clears any existing CompetitionQueue, populates it with all active
-    (non-retired) batteries in default order, and switches to Competition mode.
+    Clears any existing CompetitionQueue and switches to Competition mode.
+    The queue starts empty; batteries are added manually via add_battery_to_competition.
     """
-    batteries = _bat_dal.list_active_batteries()
-    battery_ids = [b.battery_id for b in batteries]
-    _queue_dal.init_queue(battery_ids)
+    _queue_dal.clear_queue()
     AppState().mode = AppMode.COMPETITION
     _settings_dal.set_setting("current_mode", AppMode.COMPETITION.value)
 
@@ -110,6 +108,11 @@ def get_batteries_not_in_queue() -> list:
     all_active = _bat_dal.list_active_batteries()
     queued_ids = {row.battery_id for row in _queue_dal.get_queue()}
     return [b for b in all_active if b.battery_id not in queued_ids]
+
+
+def remove_from_competition_queue(battery_id: int) -> None:
+    """Removes a battery from the competition queue if it is present."""
+    _queue_dal.remove_from_queue(battery_id)
 
 
 def mark_missing(battery_id: int) -> None:

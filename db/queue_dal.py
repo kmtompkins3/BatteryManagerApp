@@ -167,6 +167,13 @@ def add_to_queue(battery_id: int) -> None:
         )
 
 
+def remove_from_queue(battery_id: int) -> None:
+    with get_db() as conn:
+        conn.execute(
+            "DELETE FROM CompetitionQueue WHERE battery_id = ?", (battery_id,)
+        )
+
+
 def clear_queue() -> None:
     with get_db() as conn:
         conn.execute("DELETE FROM CompetitionQueue")
