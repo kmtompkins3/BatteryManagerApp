@@ -71,7 +71,7 @@ class ScannerFilter(QObject):
                 self._buffer += key
                 self._timer.start()   # restart the 800 ms window
                 return True
-            elif event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            elif event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Tab):
                 if self._buffer:
                     self.scan_received.emit(self._buffer)
                     self._buffer = ""
@@ -499,7 +499,11 @@ class MainWindow(QMainWindow):
     def _on_scan_received(self, raw_id: str) -> None:
         """Route a completed barcode scan to the appropriate action."""
         from app.services.scan_router import handle_scan, ScanResult
-        result = handle_scan(raw_id)
+        try:
+            result = handle_scan(raw_id)
+        except Exception as exc:
+            self._show_scan_status(f"Scan error: {exc}", ok=False)
+            return
 
         if result.action_taken == "needs_beak_readings":
             self._open_beak_dialog(result.battery_id)
@@ -539,7 +543,22 @@ class MainWindow(QMainWindow):
                 f"Battery #{result.battery_id} is not in the competition queue.", ok=False
             )
 
-        # Cooling/Charging batteries accidentally scanned — silently ignore
+        elif result.action_taken == "ignored_status_available":
+            self._show_scan_status(
+                f"Battery #{result.battery_id} is not charged — press SET TO CHARGING first.", ok=False
+            )
+
+        elif result.action_taken == "ignored_status_cooling":
+            self._show_scan_status(
+                f"Battery #{result.battery_id} is still cooling — wait before charging.", ok=False
+            )
+
+        elif result.action_taken.startswith("ignored_status_"):
+            # Catch-all for any other unhandled status
+            status_name = result.action_taken.replace("ignored_status_", "").title()
+            self._show_scan_status(
+                f"Battery #{result.battery_id} is {status_name} — cannot scan now.", ok=False
+            )
 
     def _handle_already_on_field(self, battery_id: int) -> None:
         """
@@ -676,7 +695,7 @@ class MainWindow(QMainWindow):
                 self._handle_competition_ended()
 
     def _set_battery_charging(self, battery_id: int) -> None:
-        """Move a battery to Charging status (from Available, Cooling, or ReadyToCharge)."""
+        """Move a battery to Charging status (from Cooling or ReadyToCharge)."""
         from app.services.competition_service import set_battery_charging
         set_battery_charging(battery_id)
         self._comp_view.refresh()

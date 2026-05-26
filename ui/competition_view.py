@@ -50,7 +50,7 @@ class CompetitionView(QWidget):
     """
 
     end_competition_requested        = pyqtSignal()
-    set_charging_requested           = pyqtSignal(int)   # battery_id — Available/Cooling/ReadyToCharge → Charging
+    set_charging_requested           = pyqtSignal(int)   # battery_id — Cooling/ReadyToCharge → Charging
     cooling_complete                 = pyqtSignal(int)   # battery_id
     battery_missing                  = pyqtSignal(int)   # battery_id
     add_battery_to_queue_requested   = pyqtSignal()
@@ -331,9 +331,10 @@ class CompetitionView(QWidget):
             self._table.setCellWidget(row_index, COL_STATUS, status_widget)
 
             # Action buttons by status:
-            #   Available        → SET TO CHARGING  (operator puts it on the charger)
-            #   Cooling / Ready  → SET TO CHARGING  (cooling done, move to charger)
-            #   Charging         → no action (batteries stay on charger until field deployment)
+            #   Available        → SET TO CHARGING  (new battery added, put it on the charger)
+            #   Cooling / Ready  → SET TO CHARGING  (cooling done, put back on charger)
+            #   Charging         → no action        (scan out via scanner when ready to deploy)
+            #   OnField/Missing  → no action        (scan in via scanner when returned)
             if status in (BatteryStatus.AVAILABLE.value,
                           BatteryStatus.COOLING.value,
                           "ReadyToCharge"):
@@ -434,6 +435,7 @@ def _make_charge_button(battery_id: int, emit_fn) -> QPushButton:
     """)
     btn.clicked.connect(lambda: emit_fn(battery_id))
     return btn
+
 
 
 def _format_duration(total_seconds: float) -> str:

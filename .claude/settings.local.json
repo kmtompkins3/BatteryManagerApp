@@ -14,7 +14,10 @@
       "Bash(pip list *)",
       "Bash(pip install *)",
       "Bash(python -c \"from ui.main_window import run_app; print\\('Import OK'\\)\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

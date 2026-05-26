@@ -47,25 +47,25 @@ def handle_scan(raw_id: str) -> ScanResult:
             error=BatteryNotFoundError(0),
         )
 
-    # Validate battery exists
-    battery = _bat_dal.get_battery(battery_id)
-    if battery is None:
-        return ScanResult(
-            action_taken="not_found",
-            battery_id=battery_id,
-            error=BatteryNotFoundError(battery_id),
-        )
-
-    if battery.retired:
-        return ScanResult(
-            action_taken="retired_battery",
-            battery_id=battery_id,
-            error=BatteryNotFoundError(battery_id),
-        )
-
-    mode = AppState().mode
-
     try:
+        # Validate battery exists
+        battery = _bat_dal.get_battery(battery_id)
+        if battery is None:
+            return ScanResult(
+                action_taken="not_found",
+                battery_id=battery_id,
+                error=BatteryNotFoundError(battery_id),
+            )
+
+        if battery.retired:
+            return ScanResult(
+                action_taken="retired_battery",
+                battery_id=battery_id,
+                error=BatteryNotFoundError(battery_id),
+            )
+
+        mode = AppState().mode
+
         if mode == AppMode.PRACTICE:
             return _route_practice(battery_id)
         else:
@@ -130,8 +130,9 @@ def _route_competition(battery_id: int) -> ScanResult:
             data=dto,
         )
 
-    if status == BatteryStatus.AVAILABLE.value:
-        # Scan-out attempt — check FIFO; signal UI to collect beak readings first
+    if status == BatteryStatus.CHARGING.value:
+        # Scan-out attempt — battery is charged and being deployed to the field.
+        # Check FIFO first, then signal the UI to collect beak readings.
         try:
             competition_service.assert_front_of_queue(battery_id)
             return ScanResult(
@@ -145,7 +146,7 @@ def _route_competition(battery_id: int) -> ScanResult:
                 error=exc,
             )
 
-    # Cooling or Charging batteries should not be scanned — return informational result
+    # Available (not yet charged) or Cooling — cannot be scanned; inform the operator
     return ScanResult(
         action_taken=f"ignored_status_{status.lower()}",
         battery_id=battery_id,
